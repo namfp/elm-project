@@ -1,7 +1,6 @@
 module Main exposing (Board, Cell(..), Model, Msg(..), evolve, init, lookForNeighborhoods, main, update, view)
 
 import Array exposing (Array)
-import Array
 import Browser
 import Html exposing (Html, button, div, text)
 import Html.Events exposing (onClick)
@@ -48,21 +47,34 @@ lookForNeighborhoods x y board =
             [ ( x - 1, y - 1 )
             , ( x - 1, y )
             , ( x - 1, y + 1 )
-            , ( x , y + 1 )
-            , ( x , y - 1 )
-            , ( x + 1 , y - 1 )
+            , ( x, y + 1 )
+            , ( x, y - 1 )
+            , ( x + 1, y - 1 )
             , ( x + 1, y )
             , ( x + 1, y + 1 )
             ]
 
-        width = (Array.get 0 board) |> Result.fromMaybe ("Board must not be empty") |> Result.map Array.length
-        height = Array.length board
+        width =
+            Array.get 0 board  |> Maybe.map Array.length
 
-        filter (x, y) = x >= 0 && x <
+        height =
+            Array.length board
 
-        filteredPositions = positions |> List.filter ()
+        filter ( i, j ) =
+            width
+                |> Maybe.map (\widthValue -> i >= 0 && i < widthValue && j >= 0 && j < height)
+                |> Maybe.withDefault False
+
+        get ( i, j ) =
+            board
+                |> Array.get j
+                |> Maybe.andThen (Array.get i)
+                |> Result.fromMaybe ("Cannot get elements at" ++ Debug.toString i ++ Debug.toString j)
+
+        filteredPositions =
+            positions |> List.filter filter |> List.map get
     in
-    [ Dead ]
+    filteredPositions
 
 
 main =
