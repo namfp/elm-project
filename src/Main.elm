@@ -4,7 +4,7 @@ import Array exposing (Array)
 import Browser
 import Html exposing (Html, button, div, text)
 import Html.Events exposing (onClick)
-
+import Tools
 
 type Cell
     = Dead
@@ -74,7 +74,17 @@ lookForNeighborhoods x y board =
         filteredPositions =
             positions |> List.filter filter |> List.map get
     in
-    filteredPositions
+        Tools.multipleResult filteredPositions
+
+
+--step : Board -> Board
+--step currentBoard =
+--    let
+--        mapLine : Int -> Array Cell -> Array Cell
+--
+--    in
+--        currentBoard |> Array.map ()
+
 
 
 main =
