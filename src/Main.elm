@@ -1,10 +1,11 @@
-module Main exposing (Board, Cell(..), Model, Msg(..), evolve, init, lookForNeighborhoods, main, update, view)
+module Main exposing (Board, Cell(..), Model, Msg(..), evolve, init, lookForNeighborhoods, main, update, view, step)
 
 import Array exposing (Array)
 import Browser
 import Html exposing (Html, button, div, table, td, text, tr)
 import Html.Attributes exposing (align, height, style, width)
 import Html.Events exposing (onClick)
+import Time
 import Tools
 
 
@@ -20,7 +21,7 @@ evolve : Cell -> List Cell -> Cell
 evolve cell neighborhoods =
     let
         size =
-            List.length neighborhoods
+            List.length (List.filter (\ x -> x == Alive) neighborhoods)
     in
     case ( cell, size ) of
         ( Alive, x ) ->
@@ -92,13 +93,18 @@ step currentBoard =
     in
     boardWithIndex nextCell
 
-
-update message board =
+update : Msg -> Model -> (Model, Cmd Msg)
+update message model =
     case message of
-        NoOp -> board
+        NoOp -> (model, Cmd.none)
+        Tick ->
+            case model.state of
+                Started -> ({ model | board = step model.board }, Cmd.none)
+                Stopped -> (model, Cmd.none)
+
         ChangeState i j ->
             let
-                row = Array.get j board
+                row = Array.get j model.board
                 currentCell = Maybe.andThen (Array.get i) row
                 updatedCell =
                     case currentCell of
@@ -106,26 +112,39 @@ update message board =
                         Just Dead -> Alive
                         Nothing -> Dead
                 updatedRow = Array.set i updatedCell <| Maybe.withDefault Array.empty row
-                updatedBoard = Array.set j updatedRow board
-
+                updatedBoard = Array.set j updatedRow model.board
+                updatedModel = { model | board = updatedBoard}
             in
-            updatedBoard
+                (updatedModel, Cmd.none)
+        StartStop ->
+            case model.state of
+                Stopped -> ({ model | state = Started }, Cmd.none)
+                Started -> ({ model | state = Stopped }, Cmd.none)
 
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    case model.state of
+        Stopped -> Sub.none
+        Started -> Time.every 50 (\ _ -> Tick)
 
 main =
-    Browser.sandbox { init = init, update = update, view = view }
+    Browser.element { init = (\() -> (init, Cmd.none)), view = view, update = update, subscriptions = subscriptions}
 
 
 
 -- MODEL
 
+type GameState = Stopped | Started
 
-type alias Model = Board
+type alias Model = {state: GameState, board: Board}
 
 
 init : Model
 init =
-    Array.repeat 50 (Array.repeat 50 Dead)
+    { state = Stopped,
+      board = Array.repeat 50 (Array.repeat 50 Dead)}
+
 
 
 -- UPDATE
@@ -134,6 +153,8 @@ init =
 type Msg
     = NoOp
     | ChangeState Int Int
+    | Tick
+    | StartStop
 
 
 
@@ -191,6 +212,20 @@ renderTable board =
         renderBoard
 
 
+
 view : Model -> Html Msg
 view model =
-    renderTable model
+    let
+        buttonText =
+            case model.state of
+                Stopped -> "Run"
+                Started -> "Stop"
+
+    in
+    div []
+        [
+        renderTable model.board,
+        button [onClick StartStop] [text buttonText],
+        text (Debug.toString model.state)
+        ]
+
