@@ -2,9 +2,11 @@ module Main exposing (Board, Cell(..), Model, Msg(..), evolve, init, lookForNeig
 
 import Array exposing (Array)
 import Browser
-import Html exposing (Html, button, div, text)
+import Html exposing (Html, button, div, table, td, text, tr)
+import Html.Attributes exposing (align, height, style, width)
 import Html.Events exposing (onClick)
 import Tools
+
 
 type Cell
     = Dead
@@ -13,7 +15,6 @@ type Cell
 
 type alias Board =
     Array (Array Cell)
-
 
 evolve : Cell -> List Cell -> Cell
 evolve cell neighborhoods =
@@ -55,7 +56,7 @@ lookForNeighborhoods x y board =
             ]
 
         width =
-            Array.get 0 board  |> Maybe.map Array.length
+            Array.get 0 board |> Maybe.map Array.length
 
         height =
             Array.length board
@@ -74,17 +75,41 @@ lookForNeighborhoods x y board =
         filteredPositions =
             positions |> List.filter filter |> List.map get
     in
-        Tools.multipleResult filteredPositions
+    Tools.multipleResult filteredPositions
 
 
---step : Board -> Board
---step currentBoard =
---    let
---        mapLine : Int -> Array Cell -> Array Cell
---
---    in
---        currentBoard |> Array.map ()
+step : Board -> Board
+step currentBoard =
+    let
+        zipIndex j line f =
+            Array.indexedMap (\i v -> f i j v) line
 
+        boardWithIndex f =
+            Array.indexedMap (\j line -> zipIndex j line f) currentBoard
+
+        nextCell i j cell =
+            evolve cell (Result.withDefault [] (lookForNeighborhoods i j currentBoard))
+    in
+    boardWithIndex nextCell
+
+
+update message board =
+    case message of
+        NoOp -> board
+        ChangeState i j ->
+            let
+                row = Array.get j board
+                currentCell = Maybe.andThen (Array.get i) row
+                updatedCell =
+                    case currentCell of
+                        Just Alive -> Dead
+                        Just Dead -> Alive
+                        Nothing -> Dead
+                updatedRow = Array.set i updatedCell <| Maybe.withDefault Array.empty row
+                updatedBoard = Array.set j updatedRow board
+
+            in
+            updatedBoard
 
 
 main =
@@ -95,42 +120,77 @@ main =
 -- MODEL
 
 
-type alias Model =
-    Int
+type alias Model = Board
 
 
 init : Model
 init =
-    0
-
+    Array.repeat 50 (Array.repeat 50 Dead)
 
 
 -- UPDATE
 
 
 type Msg
-    = Increment
-    | Decrement
-
-
-update : Msg -> Model -> Model
-update msg model =
-    case msg of
-        Increment ->
-            model + 1
-
-        Decrement ->
-            model - 1
+    = NoOp
+    | ChangeState Int Int
 
 
 
 -- VIEW
 
 
+renderCell : String -> Int -> Int -> Html Msg
+renderCell color i j =
+    td
+        [ style "backgroundColor" color
+        , style "border" "3px solid white"
+        , style "font-size" "80px"
+        , style "color" "#ffffff"
+        , style "border-radius" "2px 2px 2px 2px"
+        , height 20
+        , width 20
+        , align "center"
+        , style "valign" "center"
+        , onClick (ChangeState i j)
+        ]
+        []
+
+
+renderTable : Board -> Html Msg
+renderTable board =
+    let
+        renderLine j line =
+            line
+                |> Array.indexedMap
+                    (\i v ->
+                        case v of
+                            Dead ->
+                                renderCell "black" i j
+
+                            Alive ->
+                                renderCell "white" i j
+                    )
+                |> Array.toList
+                |> tr []
+
+        renderBoard =
+            board
+                |> Array.indexedMap
+                    (\j line ->
+                        renderLine j line
+                    )
+                |> Array.toList
+                |> table
+                    [
+                        style "border-collapse" "collapse",
+                        style "border" "1",
+                        style "cellspacing" "0"
+                    ]
+    in
+        renderBoard
+
+
 view : Model -> Html Msg
 view model =
-    div []
-        [ button [ onClick Decrement ] [ text "-" ]
-        , div [] [ text (String.fromInt model) ]
-        , button [ onClick Increment ] [ text "+" ]
-        ]
+    renderTable model
