@@ -1,4 +1,4 @@
-module KMeans exposing (Point, distance, step, run)
+module KMeans exposing (..)
 import Tools
 import Dict
 import Set
