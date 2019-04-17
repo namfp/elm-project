@@ -1,6 +1,6 @@
 module BoardTests exposing(..)
 import Array
-import Main exposing (Cell(..))
+import GameOfLife exposing (Cell(..))
 import Test exposing (..)
 import Expect
 
@@ -14,7 +14,7 @@ suite =
                         Array.fromList [Dead, Alive, Alive, Dead],
                         Array.fromList [Dead, Dead, Dead, Dead]
                     ]
-        updatedBoard = Main.step board
+        updatedBoard = GameOfLife.step board
     in
         test "step: first case" (\_ -> Expect.equal updatedBoard board)
 
