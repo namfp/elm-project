@@ -13,12 +13,11 @@ suite =
                 KMeans.run [ { x = 1, y = 1 } ] [ { x = 1, y = 1 } ]
           in
           test "run 1" (\_ -> Expect.equal result [ { x = 1, y = 1 } ])
-
-        ,  let
-              result =
-                  KMeans.run [ { x = 1, y = 1 },  { x = 3, y = 3 }] [ { x = 1, y = 1 } ]
-            in
-            test "run 2" (\_ -> Expect.equal result [ { x = 2, y = 2 } ])
+        , let
+            result =
+                KMeans.run [ { x = 1, y = 1 }, { x = 3, y = 3 } ] [ { x = 1, y = 1 } ]
+          in
+          test "run 2" (\_ -> Expect.equal result [ { x = 2, y = 2 } ])
         , let
             result =
                 KMeans.step [ { x = 1, y = 1 } ] [ { x = 1, y = 1 } ]

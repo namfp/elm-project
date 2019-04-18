@@ -1,9 +1,10 @@
 module KMeans exposing (Point, chooseCentroid, computeCentroid, createGroup, distance, run, step)
 
+import Browser
+import Color as Color
 import Dict
 import Set
 import Tools
-
 
 type alias Point =
     { x : Float, y : Float }
@@ -115,3 +116,4 @@ computeCentroid points =
             sumY / length
     in
     { x = averageX, y = averageY }
+
