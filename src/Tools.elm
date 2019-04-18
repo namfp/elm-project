@@ -1,4 +1,4 @@
-module Tools exposing (minBy, multipleResult, flatten, sum)
+module Tools exposing (flatten, minBy, multipleResult, sum)
 
 
 multipleResult : List (Result a b) -> Result a (List b)
@@ -46,22 +46,27 @@ flatten list =
     List.foldr
         (\maybeA currentResult ->
             case maybeA of
-                Nothing -> currentResult
-                Just v -> v :: currentResult
+                Nothing ->
+                    currentResult
+
+                Just v ->
+                    v :: currentResult
         )
         []
         list
 
+
 average : List Float -> Float
 average floats =
     let
-        (totalSize, totalSum) =
+        ( totalSize, totalSum ) =
             List.foldl
                 (\current currentResult ->
                     case currentResult of
-                        (currentSize, currentSum) -> (currentSize + 1, currentSum + current)
+                        ( currentSize, currentSum ) ->
+                            ( currentSize + 1, currentSum + current )
                 )
-                (0, 0.0)
+                ( 0, 0.0 )
                 floats
     in
     totalSum / totalSize
