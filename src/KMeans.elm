@@ -6,6 +6,7 @@ import Dict
 import Set
 import Tools
 
+
 type alias Point =
     { x : Float, y : Float }
 
@@ -116,4 +117,3 @@ computeCentroid points =
             sumY / length
     in
     { x = averageX, y = averageY }
-
