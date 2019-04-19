@@ -1,7 +1,5 @@
 module KMeans exposing (Point, chooseCentroid, computeCentroid, createGroup, distance, run, step)
 
-import Browser
-import Color as Color
 import Dict
 import Set
 import Tools
@@ -56,8 +54,8 @@ chooseCentroid point centroids =
     let
         minDistance =
             Tools.minBy
-                (List.map (\centroid -> ( centroid, distance point centroid )) centroids)
                 Tuple.second
+                (List.map (\centroid -> ( centroid, distance point centroid )) centroids)
     in
     minDistance |> Maybe.map Tuple.first
 

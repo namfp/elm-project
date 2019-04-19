@@ -1,4 +1,4 @@
-module Tools exposing (flatten, minBy, multipleResult, sum)
+module Tools exposing (flatten, maxBy, minBy, multipleResult, sum)
 
 
 multipleResult : List (Result a b) -> Result a (List b)
@@ -18,8 +18,18 @@ multipleResult results =
     List.foldl apply (Ok []) results
 
 
-minBy : List a -> (a -> comparable) -> Maybe a
-minBy list f =
+minBy : (a -> comparable) -> List a -> Maybe a
+minBy f list =
+    extremBy (<) f list
+
+
+maxBy : (a -> comparable) -> List a -> Maybe a
+maxBy f list =
+    extremBy (>) f list
+
+
+extremBy : (comparable -> comparable -> Bool) -> (a -> comparable) -> List a -> Maybe a
+extremBy comparator f list =
     case list of
         [] ->
             Nothing
@@ -29,7 +39,7 @@ minBy list f =
                 r =
                     List.foldl
                         (\currentResult current ->
-                            if f currentResult > f current then
+                            if comparator (f current) (f currentResult) then
                                 current
 
                             else

@@ -1,4 +1,4 @@
-module TicTacToe exposing (Cell(..), Game, Player(..))
+module TicTacToe exposing (Cell(..), Game, Player(..), evaluate)
 
 import Array exposing (Array)
 import Tools
@@ -129,20 +129,39 @@ allPossibleMoves game =
     boards
 
 
+type alias GameState =
+    { score : Int
+    , originalGame : Game
+    , nextMove : Maybe Game
+    }
 
---evaluate : Game -> Int
---evaluate game =
---    case findWinner game of
---        Just Self -> 1
---        Just Opponent -> -1
---        Nothing ->
---            let
---                possibleMoves: List Game
---                possibleMoves = allPossibleMoves game
---                scored =
---                    case .player of
---                        Self -> possibleMoves |> List.map evaluate |> List.maximum
---                        Opponent -> possibleMoves |> List.map evaluate |> List.minimum
---
---            in
---            scored
+
+evaluate : Int -> Game -> GameState
+evaluate currentDepth game =
+    case findWinner game of
+        Just Self ->
+            { score = 1, originalGame = game, nextMove = Nothing }
+
+        Just Opponent ->
+            { score = -1, originalGame = game, nextMove = Nothing }
+
+        Nothing ->
+            let
+                _ = Debug.log ("depth with opponent:" ++ (Debug.toString game.player)) currentDepth
+                possibleMoves : List Game
+                possibleMoves =
+                    allPossibleMoves game
+
+                scored : Maybe GameState
+                scored =
+                    case game.player of
+                        Self ->
+                            possibleMoves |> List.map (evaluate (currentDepth + 1)) |> Tools.maxBy .score
+
+                        Opponent ->
+                            possibleMoves |> List.map (evaluate (currentDepth + 1)) |> Tools.minBy .score
+
+                result =
+                    scored |> Maybe.map (\s -> { score = s.score, originalGame = game, nextMove = Just s.originalGame })
+            in
+            Maybe.withDefault { score = -1, originalGame = game, nextMove = Nothing } result
