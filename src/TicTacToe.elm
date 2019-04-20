@@ -147,21 +147,21 @@ evaluate currentDepth game =
 
         Nothing ->
             let
-                _ = Debug.log ("depth with opponent:" ++ (Debug.toString game.player)) currentDepth
                 possibleMoves : List Game
                 possibleMoves =
                     allPossibleMoves game
+                evaluatedMoves = possibleMoves |> List.map (evaluate (currentDepth + 1))
 
                 scored : Maybe GameState
                 scored =
                     case game.player of
                         Self ->
-                            possibleMoves |> List.map (evaluate (currentDepth + 1)) |> Tools.maxBy .score
+                            evaluatedMoves |> Tools.maxBy .score
 
                         Opponent ->
-                            possibleMoves |> List.map (evaluate (currentDepth + 1)) |> Tools.minBy .score
+                            evaluatedMoves |> Tools.minBy .score
 
                 result =
                     scored |> Maybe.map (\s -> { score = s.score, originalGame = game, nextMove = Just s.originalGame })
             in
-            Maybe.withDefault { score = -1, originalGame = game, nextMove = Nothing } result
+            Maybe.withDefault { score = 0, originalGame = game, nextMove = Nothing } result
