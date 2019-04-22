@@ -1,10 +1,12 @@
-module TicTacToe exposing (Cell(..), Game, Player(..), evaluate)
+module TicTacToe exposing (Cell(..), Game, GameResult(..), Player(..), evaluate)
 
 import Array exposing (Array)
 import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
+import Task
+import Time
 import Tools
 
 
@@ -21,6 +23,7 @@ type Player
 type alias Game =
     { board : Array (Array Cell)
     , player : Player
+    , gameResult : GameResult
     }
 
 
@@ -89,7 +92,6 @@ nextPlayer player =
             Self
 
 
-
 allPossibleMoves : Game -> List Game
 allPossibleMoves game =
     let
@@ -129,9 +131,28 @@ allPossibleMoves game =
                                 updatedLine |> Maybe.map (\l -> Array.set j l game.board)
                     )
                 |> Tools.flatten
-                |> List.map (\board -> { board = board, player = nextPlayer game.player })
+                |> List.map (\board -> { board = board, player = nextPlayer game.player, gameResult = Playing })
     in
     boards
+
+
+type GameResult
+    = Playing
+    | Winner Player
+    | Draw
+
+
+renderResult : GameResult -> String
+renderResult gameResult =
+    case gameResult of
+        Playing ->
+            "Playing"
+
+        Winner player ->
+            "Player " ++ Debug.toString player ++ " won"
+
+        Draw ->
+            "Draw"
 
 
 type alias GameState =
@@ -164,11 +185,16 @@ evaluate currentDepth game =
                     case game.player of
                         Self ->
                             evaluatedMoves |> Tools.maxBy .score
+
                         Opponent ->
                             evaluatedMoves |> Tools.minBy .score
 
                 result =
-                    scored |> Maybe.map (\s -> { score = s.score, originalGame = game, nextMove = Just s.originalGame })
+                    scored
+                        |> Maybe.map
+                            (\s ->
+                                { score = s.score, originalGame = game, nextMove = Just s.originalGame }
+                            )
             in
             Maybe.withDefault { score = 0, originalGame = game, nextMove = Nothing } result
 
@@ -179,6 +205,7 @@ evaluate currentDepth game =
 
 type Msg
     = Play Int Int
+    | PlaySelf
 
 
 
@@ -239,18 +266,21 @@ renderGame board =
 
 view : Game -> Html Msg
 view game =
-    renderGame game.board
+    div []
+        [ renderGame game.board
+        , text (renderResult game.gameResult)
+        ]
 
 
 
 --Update
 
 
-update : Msg -> Game -> Game
+update : Msg -> Game -> ( Game, Cmd Msg )
 update msg game =
     case ( msg, game ) of
-        ( Play i j, { board, player } ) ->
-            if player == Opponent then
+        ( Play i j, { board, player, gameResult } ) ->
+            if gameResult == Playing && player == Opponent then
                 let
                     currentLine =
                         Array.get j game.board
@@ -276,14 +306,34 @@ update msg game =
 
                             _ ->
                                 ( board, player )
-                    updatedGame = { game | board = updatedBoard, player = updatedPlayer }
-                    gameValue = evaluate 0 updatedGame
 
+                    updatedGame =
+                        { game | board = updatedBoard, player = updatedPlayer }
                 in
-                Maybe.withDefault game gameValue.nextMove
+                ( updatedGame, Task.perform (\_ -> PlaySelf) Time.now )
 
             else
-                game
+                ( game, Cmd.none )
+
+        ( PlaySelf, _ ) ->
+            let
+                gameComputed =
+                    evaluate 0 game
+
+                nextResult =
+                    gameComputed.nextMove
+                        |> Maybe.andThen findWinner
+                        |> Maybe.map Winner
+                        |> Maybe.withDefault Playing
+
+                nextMove =
+                    gameComputed.nextMove
+                        |> Maybe.map (\m -> { m | gameResult = nextResult })
+
+                next =
+                    Maybe.withDefault { game | gameResult = nextResult } nextMove
+            in
+            ( next, Cmd.none )
 
 
 
@@ -298,8 +348,14 @@ initGame =
             , Array.fromList [ NotPlayed, NotPlayed, NotPlayed ]
             ]
     , player = Opponent
+    , gameResult = Playing
     }
 
 
+subscriptions : Game -> Sub Msg
+subscriptions _ =
+    Sub.none
+
+
 main =
-    Browser.sandbox { init = initGame, view = view, update = update }
+    Browser.element { init = \() -> ( initGame, Cmd.none ), view = view, update = update, subscriptions = subscriptions }
